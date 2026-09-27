@@ -11,6 +11,7 @@ This repository is the [esutoru](https://github.com/esutoru) plugin marketplace 
   - `.codex-plugin/plugin.json` — Codex plugin manifest (requires `name`, `version`, `description`, `author.name`).
   - `skills/<skill>/SKILL.md` — skills. Both tools read the same `skills/` directory.
   - `references/<topic>.md` — procedures shared by several skills of that plugin (no frontmatter). Skills import them with FlowMD `import "../../references/<topic>.md" as <alias>` and call their workflows; they are never registered as skills.
+  - `references/<topic>/` — files a reference needs verbatim (card templates, ready request payloads) and the script that generates them. Skills copy these files instead of retyping their content.
   - `README.md` — plugin documentation.
 
 ## Rules
@@ -23,6 +24,7 @@ This repository is the [esutoru](https://github.com/esutoru) plugin marketplace 
 - Any skill action that writes to the user's machine or to Anki (settings file, deck, note type, cards) explains what and why first and asks for permission; read-only actions are announced in one line. The rules live in `plugins/wordmine/references/anki-connect.md`.
 - User choices that must survive between sessions go to `~/.config/esutoru-<plugin>/config.json`, never to project files or tool-specific data directories (see `plugins/wordmine/references/config.md`).
 - Bump `version` in both plugin manifests when a plugin changes.
+- The Wordmine note type templates live in `plugins/wordmine/references/note-type/` (`front.html`, `back.html`, `card.js`, `style.css`). After editing any of them run `python3 plugins/wordmine/references/note-type/build.py` to regenerate `createModel.json`; never edit that file by hand.
 - Keep manifests valid JSON; do not add comments to them.
 
 ## Validation

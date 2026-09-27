@@ -1,0 +1,35 @@
+.card {
+  font-family: arial;
+  font-size: 20px;
+  text-align: center;
+  color: black;
+  background-color: white;
+}
+.wm-word {
+  font-size: 28px;
+  font-weight: bold;
+}
+.wm-example {
+  margin-top: 1em;
+  font-style: italic;
+}
+.wm-example:empty {
+  display: none;
+}
+.wm-translation {
+  margin-top: 0.5em;
+  font-weight: bold;
+}
+.wm-example-translation {
+  margin-top: 1em;
+  font-size: 16px;
+  opacity: 0.7;
+}
+.wm-example-translation:empty {
+  display: none;
+}
+.wm-notes {
+  margin-top: 1em;
+  font-size: 16px;
+  opacity: 0.8;
+}

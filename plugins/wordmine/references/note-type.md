@@ -22,53 +22,63 @@ One note holds one word or phrase in the target language together with everythin
 | Setting | Value |
 |---|---|
 | Name | From the settings (`noteType` in `config.md`), chosen during setup. Recommended: `Esutoru Wordmine (<8 random characters>)` |
-| Fields, in order | `Word`, `Translation`, `Example`, `ExampleTranslation`, `Notes` |
-| Card templates | one card, `Card 1`: the target language on the question side, everything else on the answer side |
-| Styling | Anki's default `.card` rule plus small rules for the example and the notes |
+| Fields, in order | `Word`, `Translation`, `Examples`, `Notes` |
+| Card templates | one card, `Card 1`, defined by the files in `note-type/` (see below) |
+| Styling | `note-type/style.css` |
 
 | Field | Content | Language |
 |---|---|---|
 | `Word` | The word, phrase or sentence being learned, in dictionary form (`give up`, `hindsight`, `to be on the fence`). Always filled. Anki uses the first field for duplicate detection and refuses notes whose first field is empty, so `Word` must stay first. | target |
 | `Translation` | The translation that matches the sense the user met. Several translations separated by commas when the word really has several close meanings. | source |
-| `Example` | One natural sentence showing the word in the sense above. May be empty. | target |
-| `ExampleTranslation` | Translation of the example. May be empty. | source |
+| `Examples` | A JSON array of example sentences, each an object `{"target": ..., "source": ...}`: the sentence in the target language and its translation. Normally ten entries; empty (`[]`) only when `Word` is itself a whole sentence. The exact content rules are in `cards.md`. | target + source |
 | `Notes` | Only when useful: part of speech, register, irregular forms, a collocation, a false friend, a difference from a similar word. May be empty. | source, with target-language terms as needed |
 
-Required for `status` to report `ok`: the note type exists, all five fields are present with exactly these names (case matters), and `Word` is the first field. Extra fields are allowed and stay empty. Any other order of the first field or a missing field makes the type `incomplete`; `status` names what is wrong so the user can fix it in Anki (Tools → Manage Note Types → Fields) or let the setup create a fresh type under a new name.
+Required for `status` to report `ok`: the note type exists, all four fields are present with exactly these names (case matters), and `Word` is the first field. Extra fields are allowed and stay empty. Any other order of the first field or a missing field makes the type `incomplete`; `status` names what is wrong so the user can fix it in Anki (Tools → Manage Note Types → Fields) or let the setup create a fresh type under a new name. A note type from an earlier Wordmine version (fields `Example` and `ExampleTranslation` instead of `Examples`) is `incomplete` for the same reason; its notes keep working with their own templates, and the setup creates the new type next to it.
 
-`createModel` payload. Replace `NOTE_TYPE_NAME` with the configured name and keep everything else exactly as written:
+## How the card works
 
-```json
-{
-  "action": "createModel",
-  "version": 6,
-  "params": {
-    "modelName": "NOTE_TYPE_NAME",
-    "inOrderFields": ["Word", "Translation", "Example", "ExampleTranslation", "Notes"],
-    "css": ".card {\n  font-family: arial;\n  font-size: 20px;\n  text-align: center;\n  color: black;\n  background-color: white;\n}\n.translation {\n  font-weight: bold;\n}\n.example {\n  margin-top: 1em;\n  font-style: italic;\n}\n.example-translation {\n  font-size: 16px;\n  opacity: 0.7;\n}\n.notes {\n  margin-top: 1em;\n  font-size: 16px;\n  opacity: 0.8;\n}\n",
-    "isCloze": false,
-    "cardTemplates": [
-      {
-        "Name": "Card 1",
-        "Front": "{{Word}}",
-        "Back": "{{FrontSide}}\n\n<hr id=answer>\n\n<div class=\"translation\">{{Translation}}</div>\n{{#Example}}<div class=\"example\">{{Example}}</div>{{/Example}}\n{{#ExampleTranslation}}<div class=\"example-translation\">{{ExampleTranslation}}</div>{{/ExampleTranslation}}\n{{#Notes}}<div class=\"notes\">{{Notes}}</div>{{/Notes}}"
-      }
-    ]
-  }
-}
+The point of the `Examples` field is to stop the user from memorising one sentence instead of the word. The card shows a different example on every review:
+
+- **Front:** the word, and under it one example sentence in the target language, picked at random from `Examples` each time the question side is rendered. Anki renders the question side anew for every review, so a card that comes back after "Again" shows a fresh example.
+- **Back:** the same word and the same sentence, then the translation of the word, the translation of that very sentence, and the notes. The back never picks a new example: the front stores the index of the example it showed, and the back reads it.
+- The index is stored under one key in `sessionStorage`, which survives the page reload that AnkiDroid does between the two sides; when storage is not available the script falls back to a property on `window`, which is enough on the desktop and on AnkiMobile. The stored value carries the word, so a stale index from another card is ignored. If nothing usable is stored (card preview, storage blocked), the back picks at random rather than showing nothing.
+- The templates do not use `{{FrontSide}}`: the back repeats the front markup itself, so the script runs once per side, at the end of the HTML, after every element it fills exists. The script is wrapped in a function because on the desktop the reviewer page lives across cards and a top-level `const` would be declared twice.
+- `Examples` is rendered into `<script type="application/json">`, so quotes, `<b>` tags and `&amp;` entities in the sentences reach `JSON.parse` untouched, and the sentences are then inserted as HTML.
+
+The files, all in `note-type/` next to this file:
+
+| File | Role |
+|---|---|
+| `front.html` | question side markup |
+| `back.html` | answer side markup |
+| `card.js` | the script above; `build.py` appends it to both sides |
+| `style.css` | the card styling |
+| `build.py` | regenerates `createModel.json` from the four files above; run it after editing any of them |
+| `createModel.json` | the ready `createModel` request with the placeholder `NOTE_TYPE_NAME` for the name. This is what `ensure` sends. Never edit it by hand and never retype it: copy the file and replace the placeholder. |
+
+## Creating the note type
+
+`ensure` sends `createModel.json` with `NOTE_TYPE_NAME` replaced by the configured name. Copy the file with `sed`, never by retyping its content:
+
+```bash
+sed "s|NOTE_TYPE_NAME|Esutoru Wordmine (k3x9m2qa)|" "<references>/note-type/createModel.json" > "$TMPDIR/wordmine-create-model.json"
+curl -s -m 10 -X POST "$ANKI_CONNECT_URL" --data-binary @"$TMPDIR/wordmine-create-model.json"
+rm "$TMPDIR/wordmine-create-model.json"
 ```
 
-Send it from a file, as described under "Requests that carry text" in `anki-connect.md`: write the JSON to a temporary file, run `curl -s -m 10 -X POST "$ANKI_CONNECT_URL" --data-binary @<file>`, then delete the file. A successful answer is `{"result": {...model...}, "error": null}`. AnkiConnect refuses a name that already exists with an error mentioning the model name; treat that as a call to `status` and return its result.
+`<references>` is the plugin's `references/` directory (`${CLAUDE_PLUGIN_ROOT}/references` in Claude Code, `<skill base>/../../references` otherwise). Before using the name in the `sed` replacement, put a backslash before every `&`, `\` and `|` in it. Names containing `"` are refused in `choose-name`, so the JSON stays valid. Where `sed` does not exist (native PowerShell), read `createModel.json` with a file tool and write the temporary copy with the placeholder replaced, changing nothing else.
+
+A successful answer is `{"result": {...model...}, "error": null}`. AnkiConnect refuses a name that already exists with an error mentioning the model name; treat that as a call to `status` and return its result.
 
 ## Choosing the name
 
-One question, then act. The recommended name is `Esutoru Wordmine (xxxxxxxx)` where `xxxxxxxx` is eight random lowercase letters and digits that you generate yourself, no command needed. The suffix keeps the name unique among the user's note types, so a later redesign can create a fresh type next to the old one without touching existing cards. Present it as the recommendation, say plainly that the user may type any other name as a custom answer, and make clear in the question that choosing a name means the note type will be created under it right away. That choice is the permission; `ensure` must not ask again. If the user names a note type that already exists in the collection, say that Wordmine will use it as it is and that it must have the fields `Word`, `Translation`, `Example`, `ExampleTranslation` and `Notes`, with `Word` first; `status` verifies that.
+One question, then act. The recommended name is `Esutoru Wordmine (xxxxxxxx)` where `xxxxxxxx` is eight random lowercase letters and digits that you generate yourself, no command needed. The suffix keeps the name unique among the user's note types, so a later redesign can create a fresh type next to the old one without touching existing cards. Present it as the recommendation, say plainly that the user may type any other name as a custom answer, and make clear in the question that choosing a name means the note type will be created under it right away. That choice is the permission; `ensure` must not ask again. A name containing a double quote is refused: ask once more. If the user names a note type that already exists in the collection, say that Wordmine will use it as it is and that it must have the fields `Word`, `Translation`, `Examples` and `Notes`, with `Word` first; `status` verifies that.
 
 ## Workflows
 
 ```flowmd
 let default_url = "http://127.0.0.1:8765"
-let required_fields = ["Word", "Translation", "Example", "ExampleTranslation", "Notes"]
+let required_fields = ["Word", "Translation", "Examples", "Notes"]
 
 workflow "choose-name" (current) {
   step "Suggest" {
@@ -78,7 +88,7 @@ workflow "choose-name" (current) {
       let suffix = eight random lowercase letters and digits
       let suggested = "Esutoru Wordmine ($suffix)"
     }
-    summarize "Wordmine cards use their own note type so their fields and layout stay under the plugin's control: fields Word, Translation, Example, ExampleTranslation and Notes, one card with the word on the front and the rest on the back. Recommended name: '$suggested'. Type another name if you prefer."
+    summarize "Wordmine cards use their own note type so their fields and layout stay under the plugin's control: fields Word, Translation, Examples and Notes, one card that shows the word with a random example sentence on the front and the translations on the back. Recommended name: '$suggested'. Type another name if you prefer."
   }
 
   step "Ask" {
@@ -86,6 +96,10 @@ workflow "choose-name" (current) {
       "$suggested (recommended)": "Create the note type with this unique name now"
     }
     let name = $answer, or $suggested when empty
+    if $name contains a double quote {
+      let name = ask "The name cannot contain a double quote. Type another name, or press Enter for '$suggested'." {}
+      let name = $name, or $suggested when empty or still containing a double quote
+    }
     return $name
   }
 }
@@ -150,8 +164,8 @@ workflow "ensure" (note_type, confirmed) {
     summarize """
     The note type '$note_type' does not exist in your collection. Wordmine needs it because every card
     it creates uses this type. I can create it now through AnkiConnect. It will have the fields Word,
-    Translation, Example, ExampleTranslation and Notes, and one card showing the word on the question
-    side and the translation, the example and the notes on the answer side. Nothing else in your
+    Translation, Examples and Notes, and one card that shows the word with a random example sentence
+    on the question side and the translations and the notes on the answer side. Nothing else in your
     collection changes.
     """
     let answer = ask "Create the note type '$note_type' in Anki?" {
@@ -165,8 +179,12 @@ workflow "ensure" (note_type, confirmed) {
 
   step "Create" {
     let url = value of ANKI_CONNECT_URL if set, else $default_url
-    write the createModel payload with $note_type filled in to a temporary file
-    run "curl -s -m 10 -X POST $url --data-binary @<file>"
+    let escaped = $note_type with a backslash before every "&", "\" and "|"
+    run "sed \"s|NOTE_TYPE_NAME|$escaped|\" \"<references>/note-type/createModel.json\" > \"$TMPDIR/wordmine-create-model.json\""
+    if sed is missing {
+      read createModel.json and write the temporary copy with NOTE_TYPE_NAME replaced by $note_type, nothing else changed
+    }
+    run "curl -s -m 10 -X POST $url --data-binary @\"$TMPDIR/wordmine-create-model.json\""
     delete the temporary file
     if the answer has a non-null error {
       if the error says the model name already exists {
@@ -184,5 +202,5 @@ Expected answer shapes:
 
 ```json
 {"result": ["Basic", "Basic (and reversed card)", "Cloze", "Esutoru Wordmine (k3x9m2qa)"], "error": null}
-{"result": ["Word", "Translation", "Example", "ExampleTranslation", "Notes"], "error": null}
+{"result": ["Word", "Translation", "Examples", "Notes"], "error": null}
 ```

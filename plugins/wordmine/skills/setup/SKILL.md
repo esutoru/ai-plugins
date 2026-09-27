@@ -2,7 +2,7 @@
 name: setup-esutoru-wordmine-plugin
 description: One-time first setup of the Esutoru Wordmine plugin. Run it once after installing the plugin, and again whenever card creation starts failing.
 disable-model-invocation: true
-allowed-tools: Bash(curl:*) Bash(uname:*) Bash(pgrep:*) Bash(ls:*) Bash(test:*) Bash(tasklist:*) Bash(flatpak:*) Bash(mdfind:*) Bash(rm:*)
+allowed-tools: Bash(curl:*) Bash(uname:*) Bash(pgrep:*) Bash(ls:*) Bash(test:*) Bash(tasklist:*) Bash(flatpak:*) Bash(mdfind:*) Bash(sed:*) Bash(rm:*)
 ---
 
 # setup-esutoru-wordmine-plugin
@@ -22,7 +22,7 @@ The checks live in shared reference files under the plugin's `references/` direc
 | `references/deck.md` | `choose`, `ensure` | the chosen deck; `DECK: ok`, `DECK: skipped` or `DECK: unavailable` |
 | `references/note-type.md` | `choose-name`, `ensure` | the chosen name; `NOTE_TYPE: ok`, `NOTE_TYPE: skipped`, `NOTE_TYPE: incomplete <what is wrong>` or `NOTE_TYPE: unavailable` |
 
-Paths are relative to this skill's base directory (`<base>/../../references/`). In Claude Code the same files are at `${CLAUDE_PLUGIN_ROOT}/references/`. Read a file when its workflow is called and follow the workflow inline in this conversation. The rules for talking to Anki in `anki-connect.md` apply throughout: warn before every command, and never change the collection without explaining why and asking permission. The only writes to Anki this skill can make are creating the deck and creating the note type, and `deck.md` and `note-type.md` ask first. Existing note types are never modified. Do not re-implement the checks here.
+Paths are relative to this skill's base directory (`<base>/../../references/`). In Claude Code the same files are at `${CLAUDE_PLUGIN_ROOT}/references/`. Read a file when its workflow is called and follow the workflow inline in this conversation. The rules for talking to Anki in `anki-connect.md` apply throughout: warn before every command, and never change the collection without explaining why and asking permission. The only writes to Anki this skill can make are creating the deck and creating the note type, and `deck.md` and `note-type.md` ask first. The note type is created from the ready request file `references/note-type/createModel.json` (copied with `sed`, the name filled in); never retype its templates. Existing note types are never modified. Do not re-implement the checks here.
 
 ## Ask only for what is missing
 
@@ -58,7 +58,7 @@ Mapping:
 - Rows 1 to 4 come straight from the `status` record of `anki-connect.md`. The third column holds the one-line instruction from its "What the user has to do" table, with the "If not done yet:" prefix for `could not check`.
 - Rows 5 to 7 are `not checked` while row 4 is not done.
 - Row 5: done for `DECK: ok`; to do for `DECK: skipped`, with "**Create the deck** in Anki or run the setup again and pick another deck".
-- Row 6: done for `NOTE_TYPE: ok`; to do for `NOTE_TYPE: skipped`, with "**Allow creating the note type** on the next run, or create it in Anki yourself with the fields Word, Translation, Example, ExampleTranslation and Notes"; to do for `NOTE_TYPE: incomplete`, with "**Fix the note type** in Anki (Tools → Manage Note Types → Fields: <what is wrong>), or run the setup again and let it create a fresh note type".
+- Row 6: done for `NOTE_TYPE: ok`; to do for `NOTE_TYPE: skipped`, with "**Allow creating the note type** on the next run, or create it in Anki yourself with the fields Word, Translation, Examples and Notes"; to do for `NOTE_TYPE: incomplete`, with "**Fix the note type** in Anki (Tools → Manage Note Types → Fields: <what is wrong>), or run the setup again and let it create a fresh note type".
 - Row 7: done when the file was read or written; to do when it could not be saved, with "**Save the settings file** manually" and the JSON shown once below the table.
 
 Below the table, when anything is `to do` or `could not check`, put the user's steps in their own block under the bold heading **Your steps**, followed by "These steps are yours to do; I cannot do them for you.", as one numbered list in row order where every step starts with a bold verb phrase (see the example in `anki-connect.md`). Nothing else goes in that block. Never ask the user whether something is installed or open; the next round of checks answers that. The only question per round is: check again or stop.
@@ -71,7 +71,7 @@ At most three, and each only when the settings file lacks the value: which deck 
 
 The languages question, asked once when `targetLanguage` or `sourceLanguage` is empty:
 
-> Which languages do your cards use? The target language is the one you are learning: the word and the example are in it, on the question side. The source language is yours: the translation goes there, on the answer side.
+> Which languages do your cards use? The target language is the one you are learning: the word and the example sentences are in it, on the question side. The source language is yours: the translations go there, on the answer side.
 
 | Option | Description |
 |---|---|

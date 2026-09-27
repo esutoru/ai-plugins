@@ -1,6 +1,6 @@
 ---
 name: add-to-anki
-description: Create the Wordmine cards from the conversation in Anki through AnkiConnect. Takes the set confirmed by prepare-words, or an explicit list of words, verifies Anki, the deck and the note type, asks once, then creates the notes.
+description: Create the Wordmine cards from the conversation in Anki through AnkiConnect. Takes the set confirmed by prepare-words, or an explicit list of words, verifies Anki, the deck and the note type, asks once, completes every card to ten example sentences, then creates the notes.
 disable-model-invocation: true
 argument-hint: "[words or phrases] [deck <name>]"
 allowed-tools: Bash(curl:*) Bash(uname:*) Bash(pgrep:*) Bash(ls:*) Bash(test:*) Bash(tasklist:*) Bash(flatpak:*) Bash(mdfind:*) Bash(rm:*)
@@ -8,7 +8,7 @@ allowed-tools: Bash(curl:*) Bash(uname:*) Bash(pgrep:*) Bash(ls:*) Bash(test:*) 
 
 # add-to-anki
 
-Creates Anki notes for the cards the user has explicitly asked for. The usual input is the **Prepared cards** table that `/esutoru-wordmine:prepare-words` wrote into the conversation. Without such a table the skill needs an explicit list of words, typed after the command or clearly given in the conversation; anything less makes it stop and point to `prepare-words`. It verifies that Anki can be reached, that the deck and the note type exist and that the note type has every field, shows what it is about to create, asks once, and sends the notes.
+Creates Anki notes for the cards the user has explicitly asked for. The usual input is the **Prepared cards** table that `/esutoru-wordmine:prepare-words` wrote into the conversation. Without such a table the skill needs an explicit list of words, typed after the command or clearly given in the conversation; anything less makes it stop and point to `prepare-words`. It verifies that Anki can be reached, that the deck and the note type exist and that the note type has every field, shows what it is about to create, asks once, generates the nine remaining examples of every card, and sends the notes.
 
 Run it with `/esutoru-wordmine:add-to-anki`, optionally followed by words and a deck: `/esutoru-wordmine:add-to-anki deck Languages::English` or `/esutoru-wordmine:add-to-anki take for granted, on the fence`.
 
@@ -20,7 +20,7 @@ Run it with `/esutoru-wordmine:add-to-anki`, optionally followed by words and a 
 | `references/anki-connect.md` | rules only | how to talk to Anki; the probe itself runs inside `preflight` |
 | `references/deck.md` | `ensure` | `DECK: ok`, `DECK: skipped` or `DECK: unavailable` |
 | `references/note-type.md` | `status` | `NOTE_TYPE: ok`, `NOTE_TYPE: missing`, `NOTE_TYPE: incomplete <what is wrong>` or `NOTE_TYPE: unavailable` |
-| `references/cards.md` | none | fields, the **Prepared cards** handoff, the `addNotes` payload, the result table |
+| `references/cards.md` | none | fields, the ten examples (rules and JSON form), the **Prepared cards** handoff, the `addNotes` payload, the result table |
 
 Paths are relative to this skill's base directory (`<base>/../../references/`). In Claude Code the same files are at `${CLAUDE_PLUGIN_ROOT}/references/`. Read `cards.md` first; read the other files when their workflow is called and follow it inline. The rules for talking to Anki in `anki-connect.md` apply: warn before every command, keep tool output out of the conversation, and never change the collection without explaining what and why and asking permission. This skill makes two kinds of writes: creating a missing deck (through `deck.md`, which asks first) and creating the notes (after the one question below). It never modifies or deletes existing notes and never creates a note type; a missing or incomplete note type is fixed by the setup skill.
 
@@ -28,13 +28,13 @@ Paths are relative to this skill's base directory (`<base>/../../references/`). 
 
 In this order, the first that applies:
 
-1. The most recent **Prepared cards** table in the conversation, with any changes the user asked for after it. Cards from that table are created as they are; the languages and the "duplicate allowed" marks come with it.
+1. The most recent **Prepared cards** block in the conversation, with any changes the user asked for after it. Cards from that block are created as they are; their example becomes example 1 of the card, the languages and the "duplicate allowed" marks come with it.
 2. Words typed after the command (`$ARGUMENTS` in Claude Code, the rest of the message in Codex), minus the deck name.
 3. A list the user gave in the conversation with a clear request to put it into Anki ("add these to Anki: ...", "добавь в Anki: ...").
 
 Words that were merely discussed, asked about or marked as unknown are not an explicit list. In that case stop with: "I do not see an explicit list of words to add. Run /esutoru-wordmine:prepare-words to collect the words from our conversation, review them and confirm the set, then run /esutoru-wordmine:add-to-anki." Do not build cards from the discussion on your own.
 
-For cases 2 and 3 build the cards following `cards.md`. No duplicate check is made here; Anki's own check refuses a word that already exists in the target deck, and the result table shows that. Mention `prepare-words` when that happens.
+For cases 2 and 3 build the cards following `cards.md` with one example each, as `prepare-words` would. No duplicate check is made here; Anki's own check refuses a word that already exists in the target deck, and the result table shows that. Mention `prepare-words` when that happens.
 
 ## Before anything else
 
@@ -46,7 +46,7 @@ The deck for this call, first that applies: named after the command (`deck Langu
 
 ## The one question
 
-Before creating anything, show the line "Creating N notes in deck '<deck>' with note type '<noteType>'" and the card table from `cards.md` (without the "In Anki" column unless the prepared set had marks), then ask:
+Before creating anything, show the line "Creating N notes in deck '<deck>' with note type '<noteType>'" and the card table from `cards.md` (without the "In Anki" column unless the prepared set had marks), then one line: "Each card gets ten example sentences: the one in the table and nine more that I generate before sending." The nine are not shown. Then ask:
 
 | Option | Meaning |
 |---|---|
@@ -106,6 +106,7 @@ workflow "add-to-anki" () {
   step "Ask" {
     summarize "Creating $count notes in deck '$deck_name' with note type '$settings.noteType'."
     render the card table from $cards
+    summarize "Each card gets ten example sentences: the one in the table and nine more that I generate before sending."
     let answer = ask "Create these $count notes in Anki?" {
       "Yes, create them": "Send the notes to Anki now",
       "No": "Add nothing; run prepare-words to change the set"
@@ -116,8 +117,10 @@ workflow "add-to-anki" () {
   }
 
   step "Create" {
+    for every card in $cards whose Word is not a whole sentence, generate nine more examples following "The examples" in cards.md; the confirmed example stays number 1
     let url = value of ANKI_CONNECT_URL if set, else $default_url
-    write the addNotes payload for $cards (deck $deck_name, model $settings.noteType, tag $tag, allowDuplicate true only for rows marked "duplicate allowed") to a temporary file
+    write the addNotes payload for $cards (deck $deck_name, model $settings.noteType, tag $tag, Examples as one-line JSON per cards.md, allowDuplicate true only for rows marked "duplicate allowed") to a temporary file
+    check that every Examples value is valid JSON on its own; fix it before sending
     run "curl -s -m 30 -X POST $url --data-binary @<file>"
     delete the temporary file
     if the request failed or the answer has a non-null error {
@@ -130,7 +133,7 @@ workflow "add-to-anki" () {
     if any result says duplicate {
       summarize "Words refused as duplicates already exist in '$deck_name'. Run /esutoru-wordmine:prepare-words to see where and decide whether to keep a second note."
     }
-    return "Added $added of $count cards to deck '$deck_name'. They carry the tag '$tag'."
+    return "Added $added of $count cards to deck '$deck_name', ten examples each. They carry the tag '$tag'."
   }
 }
 ```

@@ -1,6 +1,6 @@
 ---
 name: prepare-words
-description: Collect the words and phrases from the conversation or from the command line, build a Wordmine card for each, show them as a table with the words that already exist in Anki, and let the user confirm or change the set. Creates nothing in Anki; add-to-anki does that.
+description: Collect the words and phrases from the conversation or from the command line, build a Wordmine card for each with one example sentence, show them as a table with the words that already exist in Anki, and let the user confirm or change the set. Creates nothing in Anki; add-to-anki does that.
 disable-model-invocation: true
 argument-hint: "[words or phrases]"
 allowed-tools: Bash(curl:*) Bash(uname:*) Bash(pgrep:*) Bash(ls:*) Bash(test:*) Bash(tasklist:*) Bash(flatpak:*) Bash(mdfind:*) Bash(rm:*)
@@ -8,7 +8,7 @@ allowed-tools: Bash(curl:*) Bash(uname:*) Bash(pgrep:*) Bash(ls:*) Bash(test:*) 
 
 # prepare-words
 
-Prepares a set of Wordmine cards and gets the user's explicit agreement on it. The words come from the text typed after the command and from the conversation so far. The skill builds one card per word in the configured languages, looks up which words already exist in Anki and in which decks, shows everything as a table, and asks the user to confirm, change or cancel. The confirmed set is written into the conversation as **Prepared cards**; `/esutoru-wordmine:add-to-anki` creates the notes from it. This skill never writes to Anki.
+Prepares a set of Wordmine cards and gets the user's explicit agreement on it. The words come from the text typed after the command and from the conversation so far. The skill builds one card per word in the configured languages, each with one example sentence and its translation, looks up which words already exist in Anki and in which decks, shows everything as a table, and asks the user to confirm, change or cancel. The confirmed set is written into the conversation as **Prepared cards**; `/esutoru-wordmine:add-to-anki` creates the notes from it. This skill never writes to Anki.
 
 Run it with `/esutoru-wordmine:prepare-words`, optionally followed by words and phrases: `/esutoru-wordmine:prepare-words give up, hindsight, on the fence`.
 
@@ -18,7 +18,7 @@ Run it with `/esutoru-wordmine:prepare-words`, optionally followed by words and 
 |---|---|---|
 | `references/preflight.md` | `preflight` | `ok` with the settings record (`deck`, `noteType`, `targetLanguage`, `sourceLanguage`), or `stopped` after showing the stop message |
 | `references/anki-connect.md` | rules only | how to talk to Anki; the probe itself runs inside `preflight` |
-| `references/cards.md` | none | what a card contains, the card table, the **Prepared cards** handoff |
+| `references/cards.md` | none | what a card contains, the one example this skill builds, the card table, the **Prepared cards** handoff |
 
 Paths are relative to this skill's base directory (`<base>/../../references/`). In Claude Code the same files are at `${CLAUDE_PLUGIN_ROOT}/references/`. Read `cards.md` before building the first card; read the other files when their workflow is called and follow it inline. The rules for talking to Anki in `anki-connect.md` apply: warn before every command and keep tool output out of the conversation. Everything this skill sends to Anki only reads.
 
@@ -165,7 +165,7 @@ workflow "prepare-words" () {
     show the bold heading "Prepared cards"
     show one line: "$count cards, $settings.targetLanguage → $settings.sourceLanguage" plus ", deck '$deck_name'" when named
     render the card table from $cards with "duplicate allowed" in the "In Anki" column where marked
-    return "Run /esutoru-wordmine:add-to-anki to create these cards in Anki."
+    return "Run /esutoru-wordmine:add-to-anki to create these cards in Anki; it adds nine more examples to each card."
   }
 }
 ```

@@ -6,7 +6,7 @@ Marketplace of [Esutoru](https://github.com/esutoru) plugins for [Claude Code](h
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| `esutoru-wordmine` | Esutoru Wordmine plugin (work in progress). Ships the one-time `setup-esutoru-wordmine-plugin` skill stub. | [plugins/wordmine/README.md](plugins/wordmine/README.md) |
+| `esutoru-wordmine` | Anki cards via AnkiConnect (work in progress). Ships the `setup-esutoru-wordmine-plugin` skill that verifies Anki, AnkiConnect and the Wordmine note type. | [plugins/wordmine/README.md](plugins/wordmine/README.md) |
 
 ## Add the marketplace
 

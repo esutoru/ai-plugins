@@ -1,12 +1,17 @@
 {
   "name": "esutoru-wordmine",
-  "version": "0.1.0",
-  "description": "Esutoru Wordmine plugin (work in progress). Currently ships the one-time setup-esutoru-wordmine-plugin skill stub.",
+  "version": "0.2.0",
+  "description": "Esutoru Wordmine plugin (work in progress). Ships the setup-esutoru-wordmine-plugin skill that verifies Anki, AnkiConnect and the Wordmine note type.",
   "author": {
     "name": "esutoru",
     "url": "https://github.com/esutoru"
   },
-  "keywords": ["esutoru", "wordmine"],
+  "keywords": [
+    "esutoru",
+    "wordmine",
+    "anki",
+    "ankiconnect"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Esutoru Wordmine",

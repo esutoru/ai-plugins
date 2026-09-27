@@ -1,0 +1,13 @@
+{
+  "name": "esutoru-wordmine",
+  "displayName": "Esutoru Wordmine",
+  "version": "0.1.0",
+  "description": "Esutoru Wordmine plugin (work in progress). Currently ships the one-time setup-esutoru-wordmine-plugin skill stub.",
+  "author": {
+    "name": "esutoru",
+    "url": "https://github.com/esutoru"
+  },
+  "homepage": "https://github.com/esutoru/ai-plugins/tree/main/plugins/wordmine",
+  "repository": "https://github.com/esutoru/ai-plugins",
+  "keywords": ["esutoru", "wordmine"]
+}

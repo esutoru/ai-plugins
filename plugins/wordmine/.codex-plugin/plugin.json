@@ -1,0 +1,17 @@
+{
+  "name": "esutoru-wordmine",
+  "version": "0.1.0",
+  "description": "Esutoru Wordmine plugin (work in progress). Currently ships the one-time setup-esutoru-wordmine-plugin skill stub.",
+  "author": {
+    "name": "esutoru",
+    "url": "https://github.com/esutoru"
+  },
+  "keywords": ["esutoru", "wordmine"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Esutoru Wordmine",
+    "shortDescription": "Esutoru Wordmine plugin (work in progress).",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/esutoru/ai-plugins"
+  }
+}

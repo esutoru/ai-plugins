@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ai-plugins",
+  "description": "Esutoru plugins for Claude Code and Codex.",
+  "owner": {
+    "name": "esutoru",
+    "url": "https://github.com/esutoru"
+  },
+  "plugins": [
+    {
+      "name": "esutoru-wordmine",
+      "source": "./plugins/wordmine",
+      "description": "Esutoru Wordmine plugin (work in progress). Currently ships the one-time setup-esutoru-wordmine-plugin skill stub.",
+      "category": "productivity",
+      "homepage": "https://github.com/esutoru/ai-plugins/tree/main/plugins/wordmine"
+    }
+  ]
+}

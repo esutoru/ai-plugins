@@ -90,6 +90,16 @@ Interpretation:
 | connection refused, timeout, or curl exit code 7 or 28 | not reachable, diagnose |
 | error text mentions "Operation not permitted", proxy, or sandbox | blocked by the sandbox, `could not check` |
 
+## Requests that carry text
+
+Any request whose payload contains text that did not come from this file (a deck name, a note type name, a search query, card fields) is written to a temporary JSON file in the agent's scratchpad or temp directory and sent with `--data-binary`, then the file is deleted:
+
+```bash
+curl -s -m 10 -X POST "$ANKI_CONNECT_URL" --data-binary @payload.json
+```
+
+This keeps quotes, apostrophes, non-ASCII letters and `::` intact on every shell. Inline `-d '...'` is only for the fixed payloads shown in the reference files.
+
 ## Platform diagnosis
 
 Detect the platform with `uname -s`: `Darwin`, `Linux`, or `MINGW*` / `MSYS*` / `CYGWIN*` for Windows shells. If `uname` does not exist, the shell is native Windows (PowerShell or cmd).

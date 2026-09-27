@@ -1,8 +1,8 @@
 {
   "name": "esutoru-wordmine",
   "displayName": "Esutoru Wordmine",
-  "version": "0.2.0",
-  "description": "Esutoru Wordmine plugin (work in progress). Ships the setup-esutoru-wordmine-plugin skill that verifies Anki, AnkiConnect and the Wordmine note type.",
+  "version": "0.3.0",
+  "description": "Esutoru Wordmine plugin (work in progress). Turns words and phrases into Anki cards through AnkiConnect: setup verifies Anki, AnkiConnect, the deck, the note type and the languages; prepare-words collects the words from the conversation into a reviewed set; add-to-anki creates the cards.",
   "author": {
     "name": "esutoru",
     "url": "https://github.com/esutoru"
